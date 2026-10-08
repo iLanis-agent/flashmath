@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flashmath - guide number truth-teller</title>
+<style>
+:root{--bg:#0d1117;--card:#141b24;--ink:#e8eef5;--mut:#93a3b5;--amber:#5ac8e8;--line:#24313f;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:26px 14px 60px}
+main{max-width:860px;margin:0 auto}
+a.back{color:var(--mut);text-decoration:none;font-size:14px}
+h1{font-size:30px;margin:6px 0 2px}h1 span{color:var(--amber)}
+.sub{color:var(--mut);margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+.card h2{font-size:19px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+label{display:block;color:var(--mut);font-size:13px;margin-bottom:4px}
+input,select{width:100%;background:#0f141b;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:9px 10px;font-size:16px}
+button.ghost{background:#1a2531;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer;margin:10px 6px 0 0}
+button.ghost:hover{border-color:var(--amber)}
+.verdicts{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-top:12px}
+.vc{background:#0f141b;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.vc .k{color:var(--mut);font-size:12px;letter-spacing:1px}
+.vc .n{font-size:24px;font-weight:700;margin:4px 0}
+.vc .h{color:var(--mut);font-size:13px}
+.vc.ok .n{color:var(--ok)}.vc.warn .n{color:var(--warn)}.vc.bad .n{color:var(--bad)}
+.note{color:var(--mut);font-size:13px;margin-top:10px}
+.err{display:none;background:#3a1220;border:1px solid var(--bad);color:#fecaca;border-radius:10px;padding:12px 14px;margin-bottom:14px}
+#curve{width:100%;display:block;margin:14px auto 0}
+</style>
+</head>
+<body>
+<main>
+<a class="back" href="index.html">&larr; Flashmath</a>
+<h1>Flash<span>math</span></h1>
+<p class="sub">Guide number in, honest exposure out. Everything updates live.</p>
+
+<div class="err" id="err"></div>
+
+<div class="card">
+<h2>1. Your flash right now</h2>
+<div class="grid">
+<div><label>Guide number (m, ISO 100)</label><input id="gn" type="number" step="any" value="58"></div>
+<div><label>ISO</label><input id="iso" type="number" step="any" value="400"></div>
+<div><label>Power</label><select id="power">
+<option value="1" selected>1/1 full</option>
+<option value="0.5">1/2</option>
+<option value="0.25">1/4</option>
+<option value="0.125">1/8</option>
+<option value="0.0625">1/16</option>
+<option value="0.03125">1/32</option>
+<option value="0.015625">1/64</option>
+<option value="0.0078125">1/128</option>
+</select></div>
+<div><label>Bounce loss (rule of thumb)</label><select id="bounce">
+<option value="0" selected>Direct - 0 stops</option>
+<option value="1">Low white ceiling - ~1 stop</option>
+<option value="2">Typical ceiling - ~2 stops</option>
+<option value="3">High / colored ceiling - ~3 stops</option>
+</select></div>
+</div>
+<button class="ghost" data-g="12">Pop-up GN 12</button>
+<button class="ghost" data-g="35">Compact GN 35</button>
+<button class="ghost" data-g="43">Mid speedlight GN 43</button>
+<button class="ghost" data-g="60">Flagship GN 60</button>
+<div class="verdicts" id="setup"></div>
+<p class="note" id="setupnote"></p>
+<svg id="curve" viewBox="0 0 800 190" aria-label="aperture vs distance curve"></svg>
+<p class="note">Required f-number against distance for your exact setup (inverse-square, exact). The marked stop is where your lens stops helping.</p>
+</div>
+
+<div class="card">
+<h2>2. Subject distance to aperture</h2>
+<div class="grid">
+<div><label>Subject distance (m)</label><input id="dist" type="number" step="any" value="4"></div>
+</div>
+<div class="verdicts" id="apverdict"></div>
+<p class="note" id="apnote"></p>
+</div>
+
+<div class="card">
+<h2>3. Target aperture to reach and power</h2>
+<div class="grid">
+<div><label>Target aperture (f/)</label><input id="ap" type="number" step="any" value="4"></div>
+</div>
+<div class="verdicts" id="powerverdict"></div>
+<p class="note" id="pwnote"></p>
+</div>
+</main>
+<script src="engine.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const fmt=(v,d=1)=>v.toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d});
+function vc(k,n,h,cls){return `<div class="vc${cls?' '+cls:''}"><div class="k">${k}</div><div class="n">${n}</div><div class="h">${h||''}</div></div>`}
+function num(id){const v=parseFloat($(id).value);return isFinite(v)?v:NaN;}
+function showErr(m){const e=$('err');e.textContent=m;e.style.display='block';}
+function hideErr(){$('err').style.display='none';}
+function setup(){
+ const g=engine.effectiveGN(num('gn'),num('iso'),num('power'));
+ if(g.error)return g;
+ const b=engine.bounceGN(g.gn,num('bounce'));
+ if(b.error)return b;
+ return {gn:g.gn,gnBounced:b.gn,gnNote:g.note,bounceNote:b.note,bounceStops:num('bounce')};
+}
+function drawCurve(gnBounced){
+ const W=800,H=190,pad=34,maxD=15;
+ let pts='';
+ for(let i=0;i<=100;i++){
+   const d=0.5+(maxD-0.5)*i/100;
+   const f=gnBounced/d;
+   const x=pad+(d-0.5)/(maxD-0.5)*(W-pad*2);
+   const y=H-pad-Math.min(1,Math.log2(f/1.4)/Math.log2(22/1.4))*(H-pad*2);
+   pts+=x.toFixed(1)+','+y.toFixed(1)+' ';
+ }
+ let s=`<polyline points="${pts}" fill="none" stroke="#5ac8e8" stroke-width="2.5"/>`;
+ [1.4,2.8,5.6,11,22].forEach(f=>{
+   const y=H-pad-Math.log2(f/1.4)/Math.log2(22/1.4)*(H-pad*2);
+   const d=gnBounced/f;
+   s+=`<line x1="${pad}" y1="${y}" x2="${W-pad}" y2="${y}" stroke="#24313f" stroke-width="1"/>`;
+   s+=`<text x="4" y="${y+4}" fill="#93a3b5" font-size="11">f/${f}</text>`;
+   if(d>=0.5&&d<=maxD)s+=`<circle cx="${pad+(d-0.5)/(maxD-0.5)*(W-pad*2)}" cy="${y}" r="4" fill="#5ac8e8"/>`;
+ });
+ [1,2,4,8,15].forEach(d=>{
+   const x=pad+(d-0.5)/(maxD-0.5)*(W-pad*2);
+   s+=`<text x="${x-8}" y="${H-8}" fill="#93a3b5" font-size="11">${d}m</text>`;
+ });
+ $('curve').innerHTML=s;
+}
+function run(){
+ hideErr();
+ const st=setup();
+ if(st.error){showErr(st.error);return;}
+ $('setup').innerHTML=
+  vc('GN AT ISO 100','GN '+fmt(num('gn'),0),'the number on the box')
+ +vc('EFFECTIVE GN',fmt(st.gn,1),'at ISO '+fmt(num('iso'),0)+', '+$('power').selectedOptions[0].text)
+ +(st.bounceStops>0?vc('AFTER BOUNCE',fmt(st.gnBounced,1),'-'+st.bounceStops+' stop(s), rule of thumb','warn'):vc('AFTER BOUNCE',fmt(st.gnBounced,1),'direct flash, no loss applied'))
+ +vc('REACH AT f/2.8',fmt(st.gnBounced/2.8,1)+' m','and f/5.6: '+fmt(st.gnBounced/5.6,1)+' m');
+ $('setupnote').textContent=st.gnNote+(st.bounceStops>0?' '+st.bounceNote:'');
+ drawCurve(st.gnBounced);
+ // card 2: distance -> aperture (use bounced GN via scaled gn100-equivalent: pass effective values)
+ const d=num('dist');
+ const gnB=st.gnBounced;
+ if(!(d>=0.3&&d<=100)){showErr('Distance must be 0.3-100 m.');return;}
+ const f=gnB/d;
+ const n=engine.nearestStop(f);
+ const errTxt=Math.abs(n.errStops)<0.03?'bang on':(n.errStops>0?fmt(n.errStops,2)+' stops dark':' '+fmt(-n.errStops,2)+' stops hot');
+ $('apverdict').innerHTML=
+  vc('EXACT APERTURE','f/'+fmt(f,1),'GN '+fmt(gnB,1)+' / '+fmt(d,1)+' m')
+ +vc('SET YOUR LENS TO','f/'+n.stop,errTxt,Math.abs(n.errStops)<=0.34?'ok':'warn')
+ +vc('VERDICT',f>22?'Too far':(f<1.4?'Power to spare':'In range'),f>22?'even f/22 is not enough - step closer, drop the bounce, or raise power':(f<1.4?'wider than f/1.4 - lower power or ISO for recycle time':'normal lens range'),f>22?'bad':(f<1.4?'warn':'ok'));
+ $('apnote').textContent='The error is stops between the exact answer and the stop you set. Under a third of a stop, nobody sees it.';
+ // card 3: target aperture -> reach + power
+ const ap=num('ap');
+ const pw=engine.powerFor(num('gn'),num('iso'),ap,d);
+ const gnIso=num('gn')*Math.sqrt(num('iso')/100);
+ const reach=gnB/ap;
+ $('powerverdict').innerHTML=
+  vc('REACH AT f/'+fmt(ap,1),fmt(reach,1)+' m','with the card-1 setup (bounce included)')
+ +(pw.possible?
+    vc('POWER NEEDED',pw.stepLabel,pw.verdict,'ok')
+   :vc('POWER NEEDED','1/1 short',pw.verdict,'bad'))
+ +vc('DIRECT-FLASH REACH',fmt(gnIso/ap,1)+' m','full power, no bounce - what the box implies');
+ $('pwnote').textContent=pw.possible?'Power steps are 1/1, 1/2, 1/4 ... each step one stop. The needed fraction is exact; the step is the nearest you can set.':'Shortfall is exact stops at full power, before bounce. Bounce makes it worse by the rule-of-thumb amount you chose.';
+}
+document.querySelectorAll('input,select').forEach(i=>i.addEventListener('input',run));
+document.querySelectorAll('button.ghost').forEach(b=>b.addEventListener('click',()=>{$('gn').value=b.dataset.g;run();}));
+run();
+</script>
+</body>
+</html>

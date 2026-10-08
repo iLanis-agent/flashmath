@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flashmath - manual flash without the chart on the box</title>
+<style>
+:root{--bg:#0d1117;--card:#141b24;--ink:#e8eef5;--mut:#93a3b5;--amber:#5ac8e8;--line:#24313f}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font:17px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;padding:40px 20px}
+main{max-width:760px;margin:0 auto}
+h1{font-size:44px;letter-spacing:-.5px}h1 span{color:var(--amber)}
+p.lede{color:var(--mut);font-size:19px;margin:18px 0 26px}
+a.btn{display:inline-block;background:var(--amber);color:#0a2129;font-weight:700;padding:13px 26px;border-radius:10px;text-decoration:none;font-size:18px}
+ul{margin:34px 0;list-style:none;padding:0}
+li{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:10px}
+li b{color:var(--amber)}
+small{display:block;color:var(--mut);margin-top:36px;font-size:14px}
+</style>
+</head>
+<body>
+<main>
+<h1>Flash<span>math</span></h1>
+<p class="lede">Somewhere between the guide number printed on the box and the f-stop on your lens is a chart nobody carries. Flashmath replaces it: the inverse-square law is exact physics, the ISO and power rules are published, and the answer to "what aperture at 4 meters" should not require a spreadsheet or a prayer.</p>
+<a class="btn" href="app.html">Run my numbers</a>
+<ul>
+<li><b>Real reach</b> - your flash's guide number is honest only at ISO 100, full power. See what it actually delivers at your ISO and your power setting.</li>
+<li><b>Aperture from distance</b> - the exact f-number for your subject distance, the nearest full stop, and how many stops of error that rounding hides.</li>
+<li><b>Distance from aperture</b> - how far the light really reaches at f/2.8, before you promise the group shot at the back of the hall.</li>
+<li><b>Power needed</b> - the exact power fraction for your aperture and distance, mapped to the 1/1...1/128 steps, with the honest shortfall when full power is not enough.</li>
+<li><b>Bounce honesty</b> - ceiling bounce costs stops, labeled as the rule of thumb it is instead of a fake precision figure.</li>
+<li><b>The falloff curve</b> - the inverse-square law drawn for your exact setup, so you can see why the front row is two stops hot.</li>
+</ul>
+<small>Runs entirely in your browser. Guide numbers obey the inverse-square law (exact); the published conventions are GN at ISO 100 and full power, GN scaling with the square root of ISO ratio and power fraction. Bounce losses are labeled rules of thumb - your ceiling is not my ceiling.</small>
+</main>
+</body>
+</html>
